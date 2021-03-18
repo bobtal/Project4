@@ -1,13 +1,16 @@
 package com.udacity.project4.locationreminders.savereminder.selectreminderlocation
 
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.annotation.TargetApi
 import android.content.pm.PackageManager
 import android.content.res.Resources
-import android.location.Location
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
@@ -33,7 +36,8 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     private lateinit var map: GoogleMap
     private lateinit var selectedLocation: LatLng
     private val TAG = SelectLocationFragment::class.java.simpleName
-    private val REQUEST_LOCATION_PERMISSION = 1
+
+    private val runningQOrLater = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
 
     //Use Koin to get the view model of the SaveReminder
     override val _viewModel: SaveReminderViewModel by inject()
@@ -181,6 +185,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             android.Manifest.permission.ACCESS_FINE_LOCATION) === PackageManager.PERMISSION_GRANTED
     }
 
+    @TargetApi(Build.VERSION_CODES.Q)
     @SuppressLint("MissingPermission")
     private fun enableMyLocation() {
         if (isPermissionGranted()) {
@@ -195,10 +200,19 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 }
         }
         else {
+            // Request ACCESS_FINE_LOCATION and (on Android 10+ (Q) ACCESS_BACKGROUND_LOCATION.
+            var permissionsArray = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+            val requestCode = when {
+                runningQOrLater -> {
+                    permissionsArray += Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                    REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION
+                }
+                else -> REQUEST_LOCATION_PERMISSION
+            }
             ActivityCompat.requestPermissions(
                 requireActivity(),
-                arrayOf<String>(android.Manifest.permission.ACCESS_FINE_LOCATION),
-                REQUEST_LOCATION_PERMISSION
+                permissionsArray,
+                requestCode
             )
         }
     }
@@ -210,11 +224,24 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     ) {
         // Check if location permissions are granted and if so enable the
         // location data layer.
-        if (requestCode == REQUEST_LOCATION_PERMISSION) {
-            if (grantResults.size > 0 && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                enableMyLocation()
-            }
+        if (grantResults.isEmpty() ||
+            grantResults[LOCATION_PERMISSION_INDEX] == PackageManager.PERMISSION_DENIED ||
+            (requestCode == REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION &&
+                    grantResults[BACKGROUND_LOCATION_PERMISSION_INDEX] ==
+                    PackageManager.PERMISSION_DENIED)) {
+            Snackbar.make(
+                binding.selectLocationConstrainyLayout,
+                R.string.permission_denied_explanation,
+                Snackbar.LENGTH_INDEFINITE
+            )
+        } else {
+            enableMyLocation()
         }
     }
 
 }
+
+private const val REQUEST_LOCATION_PERMISSION = 1
+private const val REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION = 2
+private const val LOCATION_PERMISSION_INDEX = 0
+private const val BACKGROUND_LOCATION_PERMISSION_INDEX = 1
