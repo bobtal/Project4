@@ -1,7 +1,6 @@
 package com.udacity.project4.locationreminders.reminderslist
 
 import android.content.Intent
-import android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
 import android.os.Bundle
 import android.view.*
 import androidx.databinding.DataBindingUtil
@@ -78,12 +77,14 @@ class ReminderListFragment : BaseFragment() {
 //                COMPLETED: add the logout implementation
 
                 // Log out the user
-                AuthUI.getInstance().signOut(requireContext())
+                AuthUI.getInstance().signOut(requireContext()).addOnSuccessListener {
+                    // Transfer the user to the AuthenticationActivity
+                    val logOutIntent = Intent(activity, AuthenticationActivity::class.java)
+                    startActivity(logOutIntent)
+                    activity?.finish()
+                }
 
-                // Transfer the user to the AuthenticationActivity
-                val logOutIntent = Intent(activity, AuthenticationActivity::class.java)
-                startActivity(logOutIntent)
-                activity?.finish()
+
             }
         }
         return super.onOptionsItemSelected(item)
