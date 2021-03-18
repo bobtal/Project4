@@ -35,6 +35,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     private lateinit var map: GoogleMap
     private lateinit var selectedLocation: LatLng
+    private var selectedLocationDescription : String? = null
     private val TAG = SelectLocationFragment::class.java.simpleName
 
     private val runningQOrLater = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
@@ -75,6 +76,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         //         and navigate back to the previous fragment to save the reminder and add the geofence
         _viewModel.latitude.value = selectedLocation.latitude
         _viewModel.longitude.value = selectedLocation.longitude
+        _viewModel.reminderSelectedLocationStr.value = selectedLocationDescription
         _viewModel.navigationCommand.value = NavigationCommand.Back
     }
 
@@ -122,6 +124,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             Log.e(TAG, "Can't find style. Error: ", e)
         }
     }
+
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
 
@@ -133,6 +136,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
 //      COMPLETED: put a marker to location that the user selected
         setOnMapClick(map)
+        setOnPoiClick(map)
     }
 
     private fun setOnMapClick(map: GoogleMap) {
@@ -146,36 +150,21 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                     .title(getString(R.string.dropped_pin))
             )
             selectedLocation = latLng
+            selectedLocationDescription = null
         }
     }
 
-    private fun setPoiClick(map: GoogleMap) {
+    private fun setOnPoiClick(map: GoogleMap) {
         map.setOnPoiClickListener { poi ->
+            map.clear()
             val poiMarker = map.addMarker(
                 MarkerOptions()
                     .position(poi.latLng)
                     .title(poi.name)
             )
             poiMarker.showInfoWindow()
-        }
-    }
-
-    private fun setMapLongClick(map: GoogleMap) {
-        map.setOnMapLongClickListener { latLng ->
-            val snippet = String.format(
-                Locale.getDefault(),
-                "Lat: %1$.5f, Long: %2$.5f",
-                latLng.latitude,
-                latLng.longitude
-            )
-
-            map.addMarker(
-                MarkerOptions()
-                    .position(latLng)
-                    .title(getString(R.string.dropped_pin))
-                    .snippet(snippet)
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
-            )
+            selectedLocation = poi.latLng
+            selectedLocationDescription = poi.name
         }
     }
 
