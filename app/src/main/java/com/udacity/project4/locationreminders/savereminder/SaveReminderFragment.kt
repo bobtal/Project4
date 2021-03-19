@@ -73,7 +73,7 @@ class SaveReminderFragment : BaseFragment() {
 
             val reminder = ReminderDataItem(
                 title, description, location, latitude, longitude)
-            _viewModel.saveReminder(reminder)
+            _viewModel.validateAndSaveReminder(reminder)
 
         }
 
