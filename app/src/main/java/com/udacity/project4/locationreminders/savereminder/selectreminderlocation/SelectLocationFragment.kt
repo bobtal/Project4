@@ -10,8 +10,6 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.*
-import androidx.annotation.RequiresApi
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import com.google.android.gms.location.*
@@ -26,10 +24,8 @@ import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
-import com.udacity.project4.utils.SingleLiveEvent
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
-import java.util.*
 
 class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
@@ -37,6 +33,8 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     private lateinit var selectedLocation: LatLng
     private var selectedLocationDescription : String? = null
     private val TAG = SelectLocationFragment::class.java.simpleName
+
+    private lateinit var permissionSnackbar: Snackbar
 
     private val runningQOrLater = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
 
@@ -198,8 +196,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 }
                 else -> REQUEST_LOCATION_PERMISSION
             }
-            ActivityCompat.requestPermissions(
-                requireActivity(),
+            requestPermissions(
                 permissionsArray,
                 requestCode
             )
@@ -218,14 +215,22 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             (requestCode == REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION &&
                     grantResults[BACKGROUND_LOCATION_PERMISSION_INDEX] ==
                     PackageManager.PERMISSION_DENIED)) {
-            Snackbar.make(
-                binding.selectLocationConstrainyLayout,
-                R.string.permission_denied_explanation,
-                Snackbar.LENGTH_INDEFINITE
-            )
+            showSnackbar()
         } else {
             enableMyLocation()
         }
+    }
+
+    private fun showSnackbar() {
+        permissionSnackbar = Snackbar.make(
+            binding.selectLocationConstraintLayout,
+            R.string.permission_denied_explanation,
+            Snackbar.LENGTH_INDEFINITE
+        )
+        permissionSnackbar.setAction(R.string.retry, View.OnClickListener {
+            enableMyLocation()
+        })
+        permissionSnackbar.show()
     }
 
 }
