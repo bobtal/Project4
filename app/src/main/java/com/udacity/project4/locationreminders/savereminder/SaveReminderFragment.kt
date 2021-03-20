@@ -6,9 +6,11 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import com.google.android.gms.location.Geofence
@@ -27,6 +29,8 @@ import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
 
 class SaveReminderFragment : BaseFragment() {
+
+    private val TAG = SaveReminderFragment::class.java.simpleName
     //Get the view model this time as a single to be shared with the another fragment
     override val _viewModel: SaveReminderViewModel by inject()
     private lateinit var binding: FragmentSaveReminderBinding
@@ -66,18 +70,26 @@ class SaveReminderFragment : BaseFragment() {
 //             1) add a geofencing request
 //             2) save the reminder to the local db
 
-            val geofence = getGeofence(title, latitude, longitude)
-            val geofencingRequest = getGeofencingRequest(geofence)
-            val geofencingClient = LocationServices.getGeofencingClient(context!!)
-            geofencingClient.addGeofences(geofencingRequest, getPendingIntent())
-
             val reminder = ReminderDataItem(
                 title, description, location, latitude, longitude)
-            _viewModel.validateAndSaveReminder(reminder)
+            if (_viewModel.validateEnteredData(reminder)) {
+                _viewModel.saveReminder(reminder)
+                val geofence = getGeofence(reminder.id, latitude, longitude)
+                val geofencingRequest = getGeofencingRequest(geofence)
+                val geofencingClient = LocationServices.getGeofencingClient(context!!)
+                geofencingClient.addGeofences(geofencingRequest, getPendingIntent())
+                    .addOnCompleteListener {
+                        Toast.makeText(context, R.string.geofence_added, Toast.LENGTH_SHORT).show()
+                        Log.d(TAG, getString(R.string.geofence_added))
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(context, R.string.geofences_not_added, Toast.LENGTH_SHORT).show()
+                        Log.e(TAG, getString(R.string.geofences_not_added) + it.message)
+                    }
+            }
 
         }
-
-
+        
     }
 
     // Get a geofencing request
@@ -91,14 +103,15 @@ class SaveReminderFragment : BaseFragment() {
 
     // Get a geofence
     private fun getGeofence(
-        title: String?,
+        id: String,
         latitude: Double?,
         longitude: Double?
     ): Geofence? {
         val geofence = Geofence.Builder()
-            .setRequestId(title)
+            .setRequestId(id)
             .setCircularRegion(latitude!!, longitude!!, GEOFENCE_RADIUS_IN_METERS)
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
+            .setLoiteringDelay(5000)
             .setExpirationDuration(Geofence.NEVER_EXPIRE)
             .build()
         return geofence

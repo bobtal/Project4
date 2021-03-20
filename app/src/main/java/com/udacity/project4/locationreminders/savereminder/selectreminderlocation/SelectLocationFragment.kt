@@ -148,7 +148,8 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                     .title(getString(R.string.dropped_pin))
             )
             selectedLocation = latLng
-            selectedLocationDescription = null
+            selectedLocationDescription = String.format(
+                getString(R.string.lat_long_snippet), latLng.latitude, latLng.longitude)
         }
     }
 
