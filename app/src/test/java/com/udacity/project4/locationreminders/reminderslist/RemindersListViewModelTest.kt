@@ -7,11 +7,15 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.udacity.project4.locationreminders.MainCoroutineRule
 import com.udacity.project4.locationreminders.data.FakeDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
+import com.udacity.project4.locationreminders.getOrAwaitValue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.hamcrest.CoreMatchers
+import org.hamcrest.CoreMatchers.nullValue
 import org.hamcrest.MatcherAssert
 import org.hamcrest.core.Is
 import org.hamcrest.core.Is.`is`
+import org.hamcrest.core.IsNot.not
+import org.junit.Assert
 import org.junit.Assert.*
 import org.junit.Assert.assertThat
 import org.junit.Before
@@ -55,43 +59,29 @@ class RemindersListViewModelTest {
 
     @Test
     fun loadReminders_loading() {
-        // GIVEN - add three reminders to the viewmodel
+        // GIVEN - we are loading reminders
         mainCoroutineRule.pauseDispatcher()
-        remindersListViewModel.remindersList.value = listOf<ReminderDataItem>(
-            ReminderDataItem(
-                "title1",
-                "description1",
-                "somewhere1",
-                11.0,
-                11.0,
-                "random1"
-            ),
-            ReminderDataItem(
-                "title2",
-                "descriptio2n",
-                "somewhere2",
-                12.0,
-                12.0,
-                "random2"
-            ),
-            ReminderDataItem(
-                "title3",
-                "description3",
-                "somewhere3",
-                13.0,
-                13.0,
-                "random3"
-            )
-        )
-
-        // WHEN - The reminders are loading
         remindersListViewModel.loadReminders()
 
-        // THEN - The loaded data contains the expected number of values
-        assertThat(remindersListViewModel.remindersList.value?.size, `is`(3))
+        // WHEN - the dispatcher is paused, showLoading is true
+        assertThat(remindersListViewModel.showLoading.getOrAwaitValue(), `is`(true))
+        mainCoroutineRule.resumeDispatcher()
 
+        // THEN - when the dispatcher is resumed, showloading is false
+        assertThat(remindersListViewModel.showLoading.getOrAwaitValue(), `is`(false))
+    }
 
+    @Test
+    fun loadRemindersWhenUnavailable_causesError() {
+        // GIVEN - there's a problem loading reminders
+        // Make the repository return errors
+        remindersRepository.setReturnError(true)
 
+        // WHEN - we want to load rhe reminders
+        remindersListViewModel.loadReminders()
+
+        // THEN - It's an error, there's a snackbar
+        assertThat(remindersListViewModel.showSnackBar.getOrAwaitValue(), not(nullValue()))
     }
 
 
